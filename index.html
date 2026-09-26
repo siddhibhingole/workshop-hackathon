@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mindtrace | Personal memory agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --ink: #17231f;
+      --muted: #718079;
+      --paper: #f5f4ef;
+      --panel: #fffefa;
+      --line: #dce2db;
+      --mint: #cfe8d9;
+      --green: #236b52;
+      --green-dark: #174c3a;
+      --coral: #e9785b;
+      --yellow: #f2c66d;
+      --shadow: 0 18px 45px rgba(23, 35, 31, .08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Manrope", sans-serif;
+      background-image: radial-gradient(rgba(35, 107, 82, .11) .7px, transparent .7px);
+      background-size: 18px 18px;
+    }
+    button, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .shell { min-height: 100vh; padding: 22px; }
+    .app {
+      display: grid;
+      grid-template-columns: 236px minmax(0, 1fr) 296px;
+      max-width: 1440px;
+      min-height: calc(100vh - 44px);
+      margin: auto;
+      overflow: hidden;
+      background: rgba(255, 254, 250, .82);
+      border: 1px solid rgba(220, 226, 219, .95);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      padding: 25px 17px;
+      color: #e8f3ec;
+      background: var(--green-dark);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 34px; }
+    .brand-mark {
+      display: grid; place-items: center; width: 31px; height: 31px;
+      color: var(--green-dark); background: var(--yellow); border-radius: 9px;
+    }
+    .brand-name { font-weight: 800; letter-spacing: -.04em; font-size: 17px; }
+    .eyebrow { color: #8ab6a0; font: 500 10px "DM Mono", monospace; letter-spacing: .12em; text-transform: uppercase; }
+    .nav { display: grid; gap: 6px; }
+    .nav button {
+      display: flex; align-items: center; gap: 11px; width: 100%; padding: 11px 10px;
+      color: #a8c4b5; background: transparent; border: 0; border-radius: 8px; text-align: left; font-size: 12px;
+    }
+    .nav button.active, .nav button:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .nav svg { width: 16px; height: 16px; }
+    .sidebar-bottom { margin-top: auto; padding: 15px 10px 3px; border-top: 1px solid rgba(255,255,255,.12); }
+    .profile { display: flex; align-items: center; gap: 9px; margin-top: 13px; font-size: 12px; }
+    .avatar { display: grid; place-items: center; width: 28px; height: 28px; color: var(--green-dark); background: var(--yellow); border-radius: 50%; font-weight: 800; font-size: 11px; }
+    .profile span { display: block; color: #9ec0ad; font-size: 10px; margin-top: 2px; }
+
+    .workspace { min-width: 0; display: flex; flex-direction: column; background: rgba(255,254,250,.7); }
+    .topbar { display: flex; align-items: center; justify-content: space-between; padding: 22px 30px 18px; border-bottom: 1px solid var(--line); }
+    .topbar h1 { margin: 4px 0 0; font-size: clamp(20px, 2.1vw, 28px); letter-spacing: -.055em; }
+    .status { display: flex; align-items: center; gap: 7px; padding: 7px 10px; color: var(--green); border: 1px solid #b8d9c5; border-radius: 99px; background: #edf8f0; font: 500 10px "DM Mono", monospace; }
+    .status i { width: 6px; height: 6px; background: #42a773; border-radius: 50%; box-shadow: 0 0 0 3px rgba(66,167,115,.15); }
+    .chat { display: flex; flex: 1; flex-direction: column; width: min(720px, 100%); margin: auto; padding: 30px; }
+    .date-line { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; color: var(--muted); font: 500 10px "DM Mono", monospace; text-transform: uppercase; letter-spacing: .09em; }
+    .date-line::before, .date-line::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+    .message { display: flex; gap: 11px; max-width: 88%; margin-bottom: 23px; animation: rise .35s ease both; }
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+    .message .avatar { flex: 0 0 auto; background: var(--mint); }
+    .message.user .avatar { color: #fff; background: var(--coral); }
+    .bubble { padding: 14px 16px; border: 1px solid var(--line); border-radius: 4px 15px 15px 15px; background: var(--panel); line-height: 1.65; font-size: 13px; }
+    .user .bubble { color: #fff; border: 0; border-radius: 15px 4px 15px 15px; background: var(--green); }
+    .bubble strong { font-weight: 800; }
+    .bubble-meta { margin-top: 8px; color: var(--muted); font: 500 9px "DM Mono", monospace; }
+    .user .bubble-meta { color: rgba(255,255,255,.7); }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 24px 39px; }
+    .suggestion { padding: 8px 11px; color: var(--green); background: transparent; border: 1px solid #b8d9c5; border-radius: 99px; font-size: 11px; }
+    .suggestion:hover { background: var(--mint); }
+    .composer { margin-top: auto; padding-top: 15px; }
+    .composer-box { display: flex; align-items: flex-end; gap: 8px; padding: 10px; background: var(--panel); border: 1px solid #cfd8cf; border-radius: 13px; box-shadow: 0 8px 25px rgba(23,35,31,.05); }
+    textarea { flex: 1; min-height: 24px; max-height: 90px; resize: none; padding: 5px 6px; color: var(--ink); background: transparent; border: 0; outline: 0; font-size: 13px; }
+    textarea::placeholder { color: #9aa7a0; }
+    .icon-button { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto; border: 0; border-radius: 8px; color: var(--muted); background: transparent; }
+    .icon-button:hover { color: var(--green); background: #edf5ee; }
+    .send { color: #fff; background: var(--green); }
+    .send:hover { color: #fff; background: var(--green-dark); }
+    .composer-note { margin: 8px 5px 0; color: #9aa7a0; font: 10px "DM Mono", monospace; }
+
+    .context { padding: 25px 20px; border-left: 1px solid var(--line); background: #f1f5ef; }
+    .context-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .context h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.04em; }
+    .context-head button { color: var(--muted); border: 0; background: transparent; padding: 3px; }
+    .context-card { padding: 15px; margin-bottom: 11px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,254,250,.75); }
+    .card-label { display: flex; align-items: center; gap: 7px; color: var(--muted); font: 500 9px "DM Mono", monospace; letter-spacing: .07em; text-transform: uppercase; }
+    .card-label svg { width: 13px; height: 13px; color: var(--coral); }
+    .card-value { margin: 13px 0 3px; font-size: 15px; font-weight: 800; letter-spacing: -.03em; }
+    .card-detail { color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .graph-wrap { margin-top: 25px; }
+    .graph-wrap h3 { margin: 0 0 12px; font-size: 11px; }
+    .graph { position: relative; height: 165px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: #f8faf5; }
+    .graph::before, .graph::after { content: ""; position: absolute; left: 50%; top: 50%; width: 112px; height: 1px; background: #b8d1c0; transform: rotate(28deg); }
+    .graph::after { transform: rotate(-28deg); }
+    .node { position: absolute; z-index: 1; display: grid; place-items: center; width: 49px; height: 49px; padding: 4px; border: 3px solid #f8faf5; border-radius: 50%; text-align: center; font: 500 8px "DM Mono", monospace; line-height: 1.1; box-shadow: 0 3px 9px rgba(23,35,31,.12); transition: transform .2s ease, box-shadow .2s ease; }
+    .node:hover, .node:focus-visible { z-index: 2; outline: 2px solid var(--coral); outline-offset: 2px; transform: scale(1.08); box-shadow: 0 5px 14px rgba(23,35,31,.2); }
+    .node.user { left: calc(50% - 25px); top: calc(50% - 25px); color: #fff; background: var(--green); }
+    .node.preference { left: 16px; top: 20px; background: var(--yellow); }
+    .node.decision { right: 15px; top: 20px; background: #f6ad8f; }
+    .node.reason { right: 29px; bottom: 17px; background: var(--mint); }
+    .graph-caption { display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted); font: 9px "DM Mono", monospace; }
+    .refresh { color: var(--green); }
+    .graph-data { display: grid; gap: 13px; margin-top: 18px; }
+    .graph-data h4 { margin: 0 0 7px; color: var(--muted); font: 500 9px "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+    .node-list, .relationship-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .node-list li, .relationship-list li { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink); font-size: 10px; line-height: 1.35; }
+    .node-dot { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--green); }
+    .node-dot.preference { background: var(--yellow); }
+    .node-dot.decision { background: #f6ad8f; }
+    .node-dot.reason { background: #9ccdb0; }
+    .node-kind { min-width: 51px; color: var(--muted); font: 500 8px "DM Mono", monospace; text-transform: uppercase; }
+    .relationship-list li { align-items: flex-start; color: var(--muted); font: 9px "DM Mono", monospace; }
+    .relationship-list strong { color: var(--green); font-weight: 500; }
+    .relationship-arrow { color: var(--coral); }
+    .toast { position: fixed; right: 24px; bottom: 24px; padding: 12px 14px; color: #fff; background: var(--ink); border-radius: 8px; font-size: 12px; opacity: 0; transform: translateY(10px); pointer-events: none; transition: .25s ease; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 980px) { .app { grid-template-columns: 78px minmax(0, 1fr); } .sidebar { padding: 20px 12px; } .brand { padding-left: 10px; } .brand-name, .nav span, .sidebar-bottom { display: none; } .nav button { justify-content: center; } .context { display: none; } }
+    @media (max-width: 600px) { .shell { padding: 0; } .app { min-height: 100vh; border: 0; border-radius: 0; grid-template-columns: 1fr; } .sidebar { display: none; } .topbar { padding: 18px 18px 15px; } .chat { padding: 23px 17px; } .message { max-width: 94%; } .suggestions { margin-left: 0; } .status { padding: 6px 8px; font-size: 9px; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <main class="app">
+      <aside class="sidebar">
+        <div class="brand"><div class="brand-mark"><i data-lucide="brain-circuit" width="17" height="17"></i></div><div class="brand-name">mindtrace</div></div>
+        <div class="eyebrow" style="padding: 0 10px 9px;">Workspace</div>
+        <nav class="nav" aria-label="Primary navigation">
+          <button class="active" type="button"><i data-lucide="messages-square"></i><span>Conversation</span></button>
+          <button type="button"><i data-lucide="network"></i><span>Memory graph</span></button>
+          <button type="button"><i data-lucide="clock-3"></i><span>History</span></button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="eyebrow">Connected source</div>
+          <div class="profile"><div class="avatar">N4J</div><div>Neo4j Aura<span>Graph memory online</span></div></div>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div><div class="eyebrow">Personal productivity agent</div><h1>Plan with what you remember.</h1></div>
+          <div class="status"><i></i> GRAPH ONLINE</div>
+        </header>
+        <section class="chat" aria-live="polite">
+          <div class="date-line">Saturday, September 26</div>
+          <article class="message user">
+            <div class="avatar">S</div>
+            <div class="bubble">Help me plan my week.<div class="bubble-meta">just now</div></div>
+          </article>
+          <article class="message">
+            <div class="avatar"><i data-lucide="sparkles" width="14" height="14"></i></div>
+            <div class="bubble">I found a couple of useful anchors in your memory. You prefer <strong>morning</strong> scheduling, and you decided to handle <strong>Presentation Prep on Monday</strong> because your client meeting is on Wednesday. Let’s use those constraints to shape the week.<div class="bubble-meta">memory-aware response · 3 nodes referenced</div></div>
+          </article>
+          <div class="suggestions">
+            <button class="suggestion" type="button">Make it more detailed</button>
+            <button class="suggestion" type="button">Add time blocks</button>
+            <button class="suggestion" type="button">What do you remember?</button>
+          </div>
+          <div class="composer">
+            <form class="composer-box" id="composer">
+              <textarea id="prompt" rows="1" aria-label="Message your memory agent" placeholder="Ask your memory agent anything..."></textarea>
+              <button class="icon-button" type="button" title="Add memory" id="add-memory"><i data-lucide="plus"></i></button>
+              <button class="icon-button send" type="submit" title="Send message"><i data-lucide="arrow-up"></i></button>
+            </form>
+            <div class="composer-note">Your prompts are grounded in connected graph context.</div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="context">
+        <div class="context-head"><div><div class="eyebrow">Live context</div><h2>What I remember</h2></div><button type="button" title="Refresh context" id="refresh"><i data-lucide="refresh-cw" width="16" height="16"></i></button></div>
+        <div class="context-card"><div class="card-label"><i data-lucide="sunrise"></i> Preference</div><div class="card-value">Morning focus</div><div class="card-detail">Your preferred schedule for focused work.</div></div>
+        <div class="context-card"><div class="card-label"><i data-lucide="calendar-check-2"></i> Decision</div><div class="card-value">Presentation Prep · Monday</div><div class="card-detail">Chosen because the client meeting is on Wednesday.</div></div>
+        <div class="graph-wrap">
+          <h3 id="graph-title">Memory structure</h3>
+          <div class="graph" role="group" aria-labelledby="graph-title" aria-describedby="graph-description">
+            <button class="node preference" type="button" aria-label="Preference node: morning" data-node="Preference: morning">morning</button>
+            <button class="node user" type="button" aria-label="User node: Siddhi" data-node="User: Siddhi">Siddhi</button>
+            <button class="node decision" type="button" aria-label="Decision node: Presentation Prep on Monday" data-node="Decision: Presentation Prep on Monday">Monday</button>
+            <button class="node reason" type="button" aria-label="Reason node: client meeting on Wednesday" data-node="Reason: client meeting on Wednesday">client<br>meeting</button>
+          </div>
+          <div class="graph-caption" id="graph-description"><span>4 nodes · 3 relationships</span><span class="refresh">synced now</span></div>
+          <div class="graph-data">
+            <section aria-labelledby="nodes-title">
+              <h4 id="nodes-title">Nodes</h4>
+              <ul class="node-list">
+                <li><i class="node-dot"></i><span class="node-kind">User</span><span>Siddhi</span></li>
+                <li><i class="node-dot preference"></i><span class="node-kind">Preference</span><span>morning</span></li>
+                <li><i class="node-dot decision"></i><span class="node-kind">Decision</span><span>Presentation Prep · Monday</span></li>
+                <li><i class="node-dot reason"></i><span class="node-kind">Reason</span><span>Client meeting · Wednesday</span></li>
+              </ul>
+            </section>
+            <section aria-labelledby="relationships-title">
+              <h4 id="relationships-title">Relationships</h4>
+              <ul class="relationship-list">
+                <li><strong>Siddhi</strong><span class="relationship-arrow">-&gt;</span><span>HAS_PREFERENCE</span><span class="relationship-arrow">-&gt;</span><strong>morning</strong></li>
+                <li><strong>Siddhi</strong><span class="relationship-arrow">-&gt;</span><span>MADE_DECISION</span><span class="relationship-arrow">-&gt;</span><strong>Monday</strong></li>
+                <li><strong>Monday</strong><span class="relationship-arrow">-&gt;</span><span>BASED_ON</span><span class="relationship-arrow">-&gt;</span><strong>client meeting</strong></li>
+              </ul>
+            </section>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    lucide.createIcons();
+    const form = document.querySelector('#composer');
+    const prompt = document.querySelector('#prompt');
+    const chat = document.querySelector('.chat');
+    const toast = document.querySelector('#toast');
+
+    function notify(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      window.setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+    function addMessage(text, type) {
+      const article = document.createElement('article');
+      article.className = `message ${type}`;
+      article.innerHTML = type === 'user'
+        ? `<div class="avatar">S</div><div class="bubble">${text}<div class="bubble-meta">just now</div></div>`
+        : `<div class="avatar"><i data-lucide="sparkles" width="14" height="14"></i></div><div class="bubble">${text}<div class="bubble-meta">memory-aware response</div></div>`;
+      chat.insertBefore(article, document.querySelector('.composer'));
+      lucide.createIcons();
+    }
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const value = prompt.value.trim();
+      if (!value) return;
+      addMessage(value.replace(/[&<>]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char])), 'user');
+      prompt.value = '';
+      window.setTimeout(() => addMessage('I’ll keep your morning focus preference and the Monday presentation decision in mind while we work through that.', 'agent'), 450);
+    });
+    document.querySelectorAll('.suggestion').forEach(button => button.addEventListener('click', () => {
+      prompt.value = button.textContent;
+      prompt.focus();
+    }));
+    document.querySelector('#add-memory').addEventListener('click', () => notify('Memory capture is ready for the connected graph.'));
+    document.querySelectorAll('.graph-node, .node').forEach(node => node.addEventListener('click', () => {
+      notify(node.dataset.node);
+    }));
+    document.querySelector('#refresh').addEventListener('click', (event) => {
+      event.currentTarget.querySelector('svg').animate([{ transform: 'rotate(0)' }, { transform: 'rotate(360deg)' }], { duration: 550 });
+      notify('Context refreshed from Neo4j.');
+    });
+  </script>
+</body>
+</html>
